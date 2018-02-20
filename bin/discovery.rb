@@ -14,31 +14,36 @@ require "%s/scaleio/transport" % [puppet_dir]
   opt :username, "ScaleIO gateway username", :type => :string, :required => true
   opt :password, "ScaleIO gateway password", :type => :string, :default => ENV["PASSWORD"]
   opt :timeout, "ScaleIO gateway connection timeout", :type => :integer, :default => 300, :required => false
-  opt :credential_id, 'dummy value for ASM, not used'
+  opt :credential_id, "dummy value for ASM, not used"
   opt :output, "Location of the file where facts file needs to be created", :type => :string, :required => false
 end
 
 def collect_scaleio_facts
-  facts = {}
-  facts[:facts] = scaleio_systems
-  scaleio_systems.each do |scaleio_system|
-    facts[scaleio_system["id"]] = {:statistics => {}, :sds => [], :sdc => [], :protection_domains => []}
-    facts[scaleio_system["id"]][:statistics] = scaleio_system_statistics(scaleio_system)
-    facts[scaleio_system["id"]][:sds] = scaleio_sds(scaleio_system)
-    facts[scaleio_system["id"]][:sdc] = scaleio_sdc(scaleio_system)
-    facts[scaleio_system["id"]][:protection_domains] = protection_domains(scaleio_system)
-    facts[scaleio_system["id"]][:volumes] = scaleio_volumes(scaleio_system)
-    facts[scaleio_system["id"]][:fault_sets] = scaleio_faultsets(scaleio_system)
-    facts[scaleio_system["id"]][:protection_domains].each do |protection_domain|
-      facts[scaleio_system["id"]][protection_domain["id"]] ||= {}
-      facts[scaleio_system["id"]][protection_domain["id"]][:statistics] = scaleio_protection_domain_statistics(protection_domain)
-      facts[scaleio_system["id"]][protection_domain["id"]][:storage_pools] = storage_pools(scaleio_system, protection_domain)
-      facts[scaleio_system["id"]][protection_domain["id"]][:storage_pools].each do |storage_pool|
-        facts[scaleio_system["id"]][protection_domain["id"]][storage_pool["id"]] ||= {}
-        facts[scaleio_system["id"]][protection_domain["id"]][storage_pool["id"]][:statistics] = scaleio_storage_pool_statistics(storage_pool)
-        facts[scaleio_system["id"]][protection_domain["id"]][storage_pool["id"]][:disks] = disks(storage_pool)
-      end
+  facts ||= {:general => {}, :statistics => {}, :sds => [], :sdc => [], :protection_domains => []}
+  facts[:certname] = "scaleio-%s" % [@opts[:server]]
+  facts[:name] = "scaleio-%s" % [@opts[:server]]
+  facts[:update_time] = Time.now
+  facts[:device_type] = "script"
+
+  scaleio_system = scaleio_systems[0]
+  facts[:general] = scaleio_system
+  facts[:statistics] = scaleio_system_statistics(scaleio_system)
+  facts[:sds] = scaleio_sds(scaleio_system)
+  facts[:sdc] = scaleio_sdc(scaleio_system)
+  facts[:volumes] = scaleio_volumes(scaleio_system)
+  facts[:fault_sets] = scaleio_faultsets(scaleio_system)
+  protection_domains(scaleio_system).each do |protection_domain|
+    pd ||= {}
+    pd[protection_domain["id"]] = {:general => {}, :statistics => {}, :storage_pools => []}
+    pd[protection_domain["id"]][:general] = protection_domain
+    pd[protection_domain["id"]][:statistics] = scaleio_protection_domain_statistics(protection_domain)
+    pd[protection_domain["id"]][:storage_pools] = storage_pools(scaleio_system, protection_domain)
+    pd[protection_domain["id"]][:storage_pools].each do |storage_pool|
+      pd[protection_domain["id"]][storage_pool["id"]] ||= {}
+      pd[protection_domain["id"]][storage_pool["id"]][:statistics] = scaleio_storage_pool_statistics(storage_pool)
+      pd[protection_domain["id"]][storage_pool["id"]][:disks] = disks(storage_pool)
     end
+    facts[:protection_domains] << pd
   end
   facts
 end
