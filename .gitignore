@@ -6,3 +6,5 @@ spec/fixtures
 .buildpath
 .bundle/*
 Gemfile.lock
+.idea
+**.iml
