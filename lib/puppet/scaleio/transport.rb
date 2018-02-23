@@ -39,7 +39,7 @@ module Puppet
               :headers => {:content_type => :json,
                            :accept => :json })
         rescue => ex
-          Puppet.error "Failed to get cookie from ScaleIO Gateway with error %s" % [ex.message]
+          Puppet.err "Failed to get cookie from ScaleIO Gateway with error %s" % [ex.message]
         end
         @scaleio_cookie = response.strip.tr('""', '')
       end
