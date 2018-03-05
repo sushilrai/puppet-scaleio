@@ -1,6 +1,7 @@
 # Configure ScaleIO SDS and ScaleIO XCache (rfcache) services installation
+include firewall
 
-class scaleio::sds_server (
+define scaleio::sds_server (
   $ensure  = 'present',  # present|absent - Install or remove SDS service
   $xcache  = 'present',  # present|absent - Install or remove XCache service
   $ftp     = 'default',  # string - 'default' or FTP with user and password for driver_sync
