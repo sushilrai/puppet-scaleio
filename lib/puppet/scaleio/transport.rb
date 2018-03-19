@@ -31,6 +31,7 @@ module Puppet
                                                  self.port]
 
         begin
+
           response = RestClient::Request.execute(
               :url => url,
               :method => :get,
@@ -38,7 +39,9 @@ module Puppet
               :payload => '{}',
               :headers => {:content_type => :json,
                            :accept => :json })
+
         rescue => ex
+          response = "NO MDM" if ex.class == RestClient::PreconditionRequired
           Puppet.err "Failed to get cookie from ScaleIO Gateway with error %s" % [ex.message]
         end
         @scaleio_cookie = response.strip.tr('""', '')

@@ -25,6 +25,14 @@ def collect_scaleio_facts
   facts[:update_time] = Time.now
   facts[:device_type] = "script"
 
+  # ScaleIO MDM is not configured
+  # Need to return basic information
+  if scaleio_cookie == "NO MDM"
+    facts[:general] = {}
+    facts[:general]["name"] = facts[:certname]
+    return facts
+  end
+
   scaleio_system = scaleio_systems[0]
   facts[:general] = scaleio_system
   facts[:statistics] = scaleio_system_statistics(scaleio_system)
