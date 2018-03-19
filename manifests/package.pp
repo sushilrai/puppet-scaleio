@@ -3,6 +3,7 @@ define scaleio::package (
   $pkg_ftp = undef,
   $pkg_path = undef,
   $scaleio_password = undef,
+  $scaleio_yum_repo = undef
   )
 {
   $package = $::osfamily ? {
@@ -13,7 +14,7 @@ define scaleio::package (
       'sdc'     => 'EMC-ScaleIO-sdc',
       'sds'     => 'EMC-ScaleIO-sds',
       'xcache'  => 'EMC-ScaleIO-xcache',
-      'lia'     => 'EMC-ScaleIO-lia',
+      'lia'     => 'EMC-ScaleIO-lia'
     },
     'Debian' => $title ? {
       'gateway' => 'emc-scaleio-gateway',
@@ -26,28 +27,30 @@ define scaleio::package (
     },
   }
 
+  $rel = $::operatingsystemmajrelease ? {
+    '' => $::operatingsystemrelease,
+    default => $::operatingsystemmajrelease
+  }
+  $version = $::osfamily ? {
+    'RedHat' => "RHEL${rel}",
+    'Debian' => "Ubuntu${rel}",
+  }
+  $provider = $::osfamily ? {
+    'RedHat' => 'rpm',
+    'Debian' => 'dpkg',
+  }
+
+  $pkg_ext = $::osfamily ? {
+    'RedHat' => 'rpm',
+    'Debian' => 'deb',
+  }
+
   if $ensure == 'absent' {
     package { $package:
       ensure => absent,
     }
   }
   elsif $pkg_ftp and $pkg_ftp != '' {
-    $rel = $::operatingsystemmajrelease ? {
-      '' => $::operatingsystemrelease,
-      default => $::operatingsystemmajrelease
-    }
-    $version = $::osfamily ? {
-      'RedHat' => "RHEL${rel}",
-      'Debian' => "Ubuntu${rel}",
-    }
-    $provider = $::osfamily ? {
-      'RedHat' => 'rpm',
-      'Debian' => 'dpkg',
-    }
-    $pkg_ext = $::osfamily ? {
-      'RedHat' => 'rpm',
-      'Debian' => 'deb',
-    }
     $ftp_url = "${pkg_ftp}/${version}"
 
     file { "ensure get_package.sh for ${title}":
@@ -69,27 +72,12 @@ define scaleio::package (
     }
   }
   elsif $pkg_path and $pkg_path != '' {
-    $rel = $::operatingsystemmajrelease ? {
-      '' => $::operatingsystemrelease,
-      default => $::operatingsystemmajrelease
-    }
-    $version = $::osfamily ? {
-      'RedHat' => "RHEL${rel}",
-      'Debian' => "Ubuntu${rel}",
-    }
-    $provider = $::osfamily ? {
-      'RedHat' => 'rpm',
-      'Debian' => 'dpkg',
-    }
-    $pkg_ext = $::osfamily ? {
-      'RedHat' => 'rpm',
-      'Debian' => 'deb',
-    }
     if $package == 'lia' {
       exec {"$provider ${pkg_path}/$version/${package}*.${pkg_ext}":
         environment => [ "TOKEN=${scaleio::password}" ],
         tag         => 'scaleio-install',
         unless      => "rpm -q 'EMC-ScaleIO-lia'",
+        path        => '/bin:/usr/bin',
       }
     } else {
       package {$package:
@@ -97,6 +85,16 @@ define scaleio::package (
         source => "${pkg_path}/$version/${package}*.${pkg_ext}",
       }
     }
-
+  }
+  else {
+    if $package == 'lia' {
+      exec {"yum -y install $package":
+        command => "TOKEN=${scaleio_password} yum -y install $package",
+        unless      => "rpm -q 'EMC-ScaleIO-lia'",
+        path        => '/bin:/usr/bin',
+      }
+    } else {
+      package {$package:}
+    }
   }
 }
