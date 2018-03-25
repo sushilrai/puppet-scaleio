@@ -21,6 +21,8 @@ class scaleio::gateway_server (
     }
   }
   else {
+    ensure_resource('package', ['iptables-services'], {'ensure' => 'installed'})
+
     firewall { '001 for ScaleIO Gateway':
       dport  => [$port, $im_port],
       proto  => tcp,

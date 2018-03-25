@@ -23,6 +23,8 @@ define scaleio::mdm_server (
     }
   }
   else {
+    ensure_resource('package', ['iptables-services'], {'ensure' => 'installed'})
+
     firewall { '001 Open Ports 6611 and 9011 for ScaleIO MDM':
       dport  => [6611, 9011],
       proto  => tcp,
