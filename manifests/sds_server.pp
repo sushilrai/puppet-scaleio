@@ -9,6 +9,8 @@ define scaleio::sds_server (
   $pkg_path = undef
   )
 {
+  ensure_resource('package', ['iptables-services'], {'ensure' => 'installed'})
+
   firewall { '001 Open Port 7072 for ScaleIO SDS':
     dport  => [7072],
     proto  => tcp,
