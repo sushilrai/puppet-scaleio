@@ -61,7 +61,7 @@ define scaleio::cluster (
       scope_ref           => 'old_password',
       scope_value         => $password,
       approve_certificate => '',
-      unless_query        => "--login --username admin --password $new_password"
+      onlyif_query        => "login --username admin --password $password"
     }
   }
   if $license_file_path {

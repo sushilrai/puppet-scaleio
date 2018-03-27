@@ -119,7 +119,7 @@ define scaleio::cmd(
     default => "scli ${mdm_opts} ${approve_certificate} --${unless_query} ${val} ${unless_query_ext_opt}"}
   $onlyif_command = $onlyif_query ? {
     undef   => undef,
-    default => "scli ${mdm_opts} ${approve_certificate} --${onlyif_query} ${val}"}
+    default => "scli ${mdm_opts} ${approve_certificate} --${onlyif_query}"}
 
   notify { "SCLI COMMAND: ${command}": }
   if $unless_command {

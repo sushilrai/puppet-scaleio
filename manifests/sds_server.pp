@@ -43,6 +43,7 @@ define scaleio::sds_server (
   if $xcache == 'present' {
     service { 'xcache':
       ensure => 'running',
+      require => "Scaleio::Package[xcache]"
     }
   }
 
