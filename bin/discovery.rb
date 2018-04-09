@@ -28,13 +28,22 @@ def collect_scaleio_facts
   # ScaleIO MDM is not configured
   # Need to return basic information
   if scaleio_cookie == "NO MDM"
-    facts[:general] = {}
-    facts[:general]["name"] = facts[:certname]
+    facts = {
+      :general => { "name" => facts["certname"] },
+      :statistics => {},
+      :sdc_list => [],
+      :protection_domain_list => [],
+      :fault_sets => []
+    }
+
     return facts
   end
 
   scaleio_system = scaleio_systems[0]
+
   facts[:general] = scaleio_system
+  facts[:general]["name"] ||= facts[:certname]
+
   facts[:statistics] = scaleio_system_statistics(scaleio_system)
   facts[:sdc_list] = scaleio_sdc(scaleio_system)
   sdsList = scaleio_sds(scaleio_system)
