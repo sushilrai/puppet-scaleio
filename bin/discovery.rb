@@ -29,7 +29,7 @@ def collect_scaleio_facts
   # Need to return basic information
   if scaleio_cookie == "NO MDM"
     facts = {
-      :general => { "name" => facts["certname"] },
+      :general => { "name" => facts[:certname] },
       :statistics => {},
       :sdc_list => [],
       :protection_domain_list => [],
