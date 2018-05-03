@@ -14,6 +14,11 @@ define scaleio::mdm (
   if $ensure == 'present' {
     $management_ip_opts = $management_ips ? {undef => '', default => "--new_mdm_management_ip ${management_ips}" }
     $port_opts = $port ? {undef => '', default => "--new_mdm_port ${port}" }
+    $ip = $ips.split(",")[0]
+    exec { "ping_check_${ip}":
+      command => "while true; do ping -c 1 ${ip} > /dev/null 2>&1 ;  if [[ $? -eq 0 ]]; then break ; fi; done",
+      timeout => 1800
+    }
     scaleio::cmd {"MDM ${title} ${ensure}":
       action       => 'add_standby_mdm',
       ref          => 'new_mdm_name',
@@ -21,7 +26,8 @@ define scaleio::mdm (
       scope_ref    => 'mdm_role',
       scope_value  => $role,
       extra_opts   => "--new_mdm_ip ${ips} ${port_opts} ${management_ip_opts} --force_clean --i_am_sure",
-      unless_query => 'query_cluster | grep'
+      unless_query => 'query_cluster | grep',
+      require      => "Exec[ping_check_${ip}]"
     }
   }
   elsif $ensure == 'absent' {
