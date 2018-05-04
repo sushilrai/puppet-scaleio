@@ -17,7 +17,9 @@ define scaleio::mdm (
     $ip = $ips.split(",")[0]
     exec { "ping_check_${ip}":
       command => "while true; do ping -c 1 ${ip} > /dev/null 2>&1 ;  if [[ $? -eq 0 ]]; then break ; fi; done",
-      timeout => 1800
+      timeout => 1800,
+      path    => "/bin:/usr/bin",
+      provider => "shell"
     }
     scaleio::cmd {"MDM ${title} ${ensure}":
       action       => 'add_standby_mdm',
