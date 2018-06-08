@@ -46,17 +46,15 @@ def collect_scaleio_facts
 
   facts[:statistics] = scaleio_system_statistics(scaleio_system)
   facts[:sdc_list] = scaleio_sdc(scaleio_system)
-  sdsList = scaleio_sds(scaleio_system)
-  volumes = scaleio_volumes(scaleio_system)
   protection_domains(scaleio_system).each do |protection_domain|
     pd = {:general => protection_domain,
-          :statistics => scaleio_protection_domain_statistics(protection_domain),
-          :storage_pool_list => storage_pools(scaleio_system, protection_domain)}
-    pd[:sds_list] = sdsList.select {|sds| sds[:protectionDomainId] == protection_domain[:id]}
+          :statistics => protection_domain_statistics(protection_domain),
+          :storage_pool_list => protection_domain_storage_pools(protection_domain),
+          :sds_list => protection_domain_sdslist(protection_domain)}
     pd[:storage_pool_list].each do |storage_pool|
-      storage_pool[:statistics] = scaleio_storage_pool_statistics(storage_pool)
-      storage_pool[:disk_list] = disks(storage_pool)
-      storage_pool[:volume_list] = volumes.select {|volume| volume[:storagePoolId] == storage_pool[:id]}
+      storage_pool[:statistics] = storage_pool_statistics(storage_pool)
+      storage_pool[:disk_list] = storage_pool_disks(storage_pool)
+      storage_pool[:volume_list] = storage_pool_volumes(storage_pool)
     end
     facts[:protection_domain_list] << pd
   end
@@ -75,51 +73,51 @@ def scaleio_system_statistics(scaleio_system)
   transport.post_request(url, {}, "get") || []
 end
 
-def scaleio_sds(scaleio_system)
-  sds_url = "/api/types/Sds/instances?systemId=%s" % [scaleio_system["id"]]
-  url = transport.get_url(sds_url)
-  transport.post_request(url, {}, "get") || []
-end
-
 def scaleio_sdc(scaleio_system)
-  sdc_url = "/api/types/Sdc/instances?systemId=%s" % [scaleio_system["id"]]
+  sdc_url = "/api/instances/System::%s/relationships/Sdc" % [scaleio_system["id"]]
   url = transport.get_url(sdc_url)
   transport.post_request(url, {}, "get") || []
 end
 
 def protection_domains(scaleio_system)
-  pd_url = "/api/types/ProtectionDomain/instances?systemId=%s" % [scaleio_system["id"]]
+  pd_url = "/api/instances/System::%s/relationships/ProtectionDomain" % [scaleio_system["id"]]
   url = transport.get_url(pd_url)
   transport.post_request(url, {}, "get") || []
 end
 
-def scaleio_protection_domain_statistics(protection_domain)
+def protection_domain_statistics(protection_domain)
   end_point = "/api/instances/ProtectionDomain::%s/relationships/Statistics" % [protection_domain["id"]]
   url = transport.get_url(end_point)
   transport.post_request(url, {}, "get") || []
 end
 
-def storage_pools(scaleio_system, protection_domain)
-  sp_url = "/api/types/StoragePool/instances?systemId=%s&protectiondomainId=%s" % [scaleio_system["id"], protection_domain["id"]]
+def protection_domain_storage_pools(protection_domain)
+  sp_url = "/api/instances/ProtectionDomain::%s/relationships/StoragePool" % [protection_domain["id"]]
   url = transport.get_url(sp_url)
   transport.post_request(url, {}, "get") || []
 end
 
-def scaleio_storage_pool_statistics(storage_pool)
+def protection_domain_sdslist(protection_domain)
+  sp_url = "/api/instances/ProtectionDomain::%s/relationships/Sds" % [protection_domain["id"]]
+  url = transport.get_url(sp_url)
+  transport.post_request(url, {}, "get") || []
+end
+
+def storage_pool_volumes(storage_pool)
+  sp_url = "/api/instances/StoragePool::%s/relationships/Volume" % [storage_pool["id"]]
+  url = transport.get_url(sp_url)
+  transport.post_request(url, {}, "get") || []
+end
+
+def storage_pool_statistics(storage_pool)
   end_point = "/api/instances/StoragePool::%s/relationships/Statistics" % [storage_pool["id"]]
   url = transport.get_url(end_point)
   transport.post_request(url, {}, "get") || []
 end
 
-def disks(storage_pool)
-  sp_url = "/api/types/Device/instances?storagepoolId=%s" % [storage_pool["id"]]
+def storage_pool_disks(storage_pool)
+  sp_url = "/api/instances/StoragePool::%s/relationships/Device" % [storage_pool["id"]]
   url = transport.get_url(sp_url)
-  transport.post_request(url, {}, "get") || []
-end
-
-def scaleio_volumes(scaleio_system)
-  volume_url = "/api/types/Volume/instances?systemId=%s" % [scaleio_system["id"]]
-  url = transport.get_url(volume_url)
   transport.post_request(url, {}, "get") || []
 end
 
