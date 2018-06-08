@@ -18,6 +18,7 @@ define scaleio::cluster (
                                                     #          should be used toghether with capacity_high_alert_threshold
   $client_password                    = undef,      # string - The password for the user created for ScaleIO clients
                                                     #          with role FontEndConfigure
+  $cmd_provider                       = undef
   )
 {
   if $cluster_mode {
@@ -28,7 +29,8 @@ define scaleio::cluster (
       ref          => 'cluster_mode',
       value        => "${cluster_mode}_node",
       extra_opts   => "--${action}_slave_mdm_name ${slave_names} --${action}_tb_name ${tb_names} --i_am_sure",
-      unless_query => 'query_cluster | grep -A 1 "Cluster:" | grep'
+      unless_query => 'query_cluster | grep -A 1 "Cluster:" | grep',
+      provider     => $cmd_provider
     }
   }
   if $slave_names_to_replace or $tb_names_to_replace {

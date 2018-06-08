@@ -55,6 +55,7 @@ define scaleio::cmd(
   $unless_query_ext_hash  = {},
   $approve_certificate    = '--approve_certificate',
   $retry                  = undef,
+  $cmd_provider           = undef
   )
 {
   # Command
@@ -135,6 +136,7 @@ define scaleio::cmd(
     onlyif    => $onlyif_command,
     tries     => $retry,
     try_sleep => 5,
+    provider  => $cmd_provider
   }
 }
 
