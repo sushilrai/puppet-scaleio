@@ -30,7 +30,7 @@ define scaleio::cluster (
       value        => "${cluster_mode}_node",
       extra_opts   => "--${action}_slave_mdm_name ${slave_names} --${action}_tb_name ${tb_names} --i_am_sure",
       unless_query => 'query_cluster | grep -A 1 "Cluster:" | grep',
-      provider     => $cmd_provider
+      cmd_provider     => $cmd_provider
     }
   }
   if $slave_names_to_replace or $tb_names_to_replace {
@@ -53,6 +53,7 @@ define scaleio::cluster (
     scaleio::cmd {"replace cluster nodes ${add_slave_opts} ${remove_slave_opts} ${add_tb_opts} ${remove_tb_opts}":
       action     => 'replace_cluster_mdm',
       extra_opts => "${add_slave_opts} ${remove_slave_opts} ${add_tb_opts} ${remove_tb_opts} --allow_leave_failed --i_am_sure",
+      cmd_provider     => $cmd_provider
     }
   }
   if $new_password {
@@ -63,14 +64,16 @@ define scaleio::cluster (
       scope_ref           => 'old_password',
       scope_value         => $password,
       approve_certificate => '',
-      onlyif_query        => "login --username admin --password $password"
+      onlyif_query        => "login --username admin --password $password",
+      cmd_provider     => $cmd_provider
     }
   }
   if $license_file_path {
     scaleio::cmd {'set license':
       action => 'set_license',
       ref    => 'license_file',
-      value  => $license_file_path}
+      value  => $license_file_path},
+      cmd_provider     => $cmd_provider
   }
   $mdm_opts = $::mdm_ips ? {
     undef   => '',
