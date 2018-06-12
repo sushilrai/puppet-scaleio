@@ -74,6 +74,7 @@ define scaleio::cluster (
       ref          => 'license_file',
       value        => $license_file_path,
       cmd_provider => $cmd_provider
+    }
   }
   $mdm_opts = $::mdm_ips ? {
     undef   => '',
