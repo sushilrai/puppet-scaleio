@@ -18,23 +18,45 @@ require "%s/scaleio/transport" % [puppet_dir]
   opt :output, "Location of the file where facts file needs to be created", :type => :string, :required => false
 end
 
+def vxflexos_hostname
+  flex_hostname = ""
+  begin
+    tcp_client = TCPSocket.new(@opts[:server], 443)
+    ssl_context = OpenSSL::SSL::SSLContext.new
+    ssl_context.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    ssl_client = OpenSSL::SSL::SSLSocket.new(tcp_client, ssl_context)
+    ssl_client.connect
+    cert = OpenSSL::X509::Certificate.new(ssl_client.peer_cert)
+    ssl_client.sysclose
+    tcp_client.close
+    certprops = OpenSSL::X509::Name.new(cert.issuer).to_a
+    flex_hostname = certprops.select { |name, data, type| name == "CN" }.first[1]
+    puts "Flex hostname retrieved: %s" % flex_hostname
+  rescue
+    puts "Error gathering inventory for server: %s reason: %s" % [@opts[:server], $!.to_s]
+    flex_hostname = "vxflexos-%s" % [@opts[:server]]
+  end
+
+   flex_hostname
+end
+
 def collect_scaleio_facts
   facts = {:protection_domain_list => []}
   facts[:certname] = "scaleio-%s" % [@opts[:server]]
-  facts[:name] = "scaleio-%s" % [@opts[:server]]
+  facts[:name] = vxflexos_hostname
   facts[:update_time] = Time.now
   facts[:device_type] = "script"
 
   # ScaleIO MDM is not configured
   # Need to return basic information
   if scaleio_cookie == "NO MDM"
-    facts = {
-      :general => { "name" => facts[:certname] },
+    facts.merge!({
+      :general => { "name" => vxflexos_hostname },
       :statistics => {},
       :sdc_list => [],
       :protection_domain_list => [],
       :fault_sets => []
-    }
+    })
 
     return facts
   end
@@ -42,8 +64,7 @@ def collect_scaleio_facts
   scaleio_system = scaleio_systems[0]
 
   facts[:general] = scaleio_system
-  facts[:general]["name"] ||= facts[:certname]
-
+  facts[:general][:name] = facts[:name]
   facts[:statistics] = scaleio_system_statistics(scaleio_system)
   facts[:sdc_list] = scaleio_sdc(scaleio_system)
   protection_domains(scaleio_system).each do |protection_domain|
