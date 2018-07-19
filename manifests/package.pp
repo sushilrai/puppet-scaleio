@@ -25,6 +25,15 @@ define scaleio::package (
       'xcache'  => 'emc-scaleio-xcache',
       'lia'     => 'emc-scaleio-lia',
     },
+    'Suse' => $title ? {
+      'gateway' => 'EMC-ScaleIO-gateway',
+      'gui'     => 'EMC-ScaleIO-gui',
+      'mdm'     => 'EMC-ScaleIO-mdm',
+      'sdc'     => 'EMC-ScaleIO-sdc',
+      'sds'     => 'EMC-ScaleIO-sds',
+      'xcache'  => 'EMC-ScaleIO-xcache',
+      'lia'     => 'EMC-ScaleIO-lia'
+    },
   }
 
   $rel = $::operatingsystemmajrelease ? {
@@ -34,15 +43,18 @@ define scaleio::package (
   $version = $::osfamily ? {
     'RedHat' => "RHEL${rel}",
     'Debian' => "Ubuntu${rel}",
+    'Suse' => "SUSE${rel}",
   }
   $provider = $::osfamily ? {
     'RedHat' => 'rpm',
     'Debian' => 'dpkg',
+    'Suse' => 'rpm',
   }
 
   $pkg_ext = $::osfamily ? {
     'RedHat' => 'rpm',
     'Debian' => 'deb',
+    'Suse' => 'rpm',
   }
 
   if $ensure == 'absent' {

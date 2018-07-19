@@ -27,6 +27,12 @@ define scaleio::common_server (
       }
     }
   }
+  elsif $::osfamily == 'Suse' {
+    ensure_resource('package', ['libaio', 'numactl', 'wget'], {'ensure' => 'installed'})
+    if $ensure_java == 'present' {
+      ensure_resource('package', 'java-1.8.0-openjdk', {'ensure' => 'installed'})
+    }
+  }
   else {
     fail("Unsupported OS family: ${::osfamily}")
   }
