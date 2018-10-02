@@ -4,6 +4,7 @@ require "trollop"
 require "json"
 require "timeout"
 require "pathname"
+require "asm/util"
 
 puppet_dir = File.join(Pathname.new(__FILE__).parent.parent,'lib','puppet')
 require "%s/scaleio/transport" % [puppet_dir]
@@ -13,6 +14,9 @@ require "%s/scaleio/transport" % [puppet_dir]
   opt :port, "ScaleIO gateway port", :default => 443
   opt :username, "ScaleIO gateway username", :type => :string, :required => true
   opt :password, "ScaleIO gateway password", :type => :string, :default => ENV["PASSWORD"]
+  opt :os_username, "", :type => :string, :required => true
+  opt :os_password_id, "Not used"
+  opt :os_password, "", :type => :string, :default => ENV["OS_PASSWORD"]
   opt :timeout, "ScaleIO gateway connection timeout", :type => :integer, :default => 300, :required => false
   opt :credential_id, "dummy value for ASM, not used"
   opt :output, "Location of the file where facts file needs to be created", :type => :string, :required => false
@@ -41,6 +45,7 @@ def vxflexos_hostname
 end
 
 def collect_scaleio_facts
+  check_ssh_connection
   facts = {:protection_domain_list => []}
   facts[:certname] = "scaleio-%s" % [@opts[:server]]
   facts[:name] = vxflexos_hostname
@@ -81,6 +86,17 @@ def collect_scaleio_facts
   end
   facts[:fault_sets] = scaleio_faultsets(scaleio_system)
   facts
+end
+
+def check_ssh_connection
+  puts "Attempting to ssh to verify root credentials."
+  begin
+    result = ASM::Util.execute_script_via_ssh(@opts[:server], @opts[:os_username], @opts[:os_password], "ls")
+    puts "SSH test result code: %s, result: %s, error msg: %s" % [result[:exit_code],result[:stdout],result[:stderr]] if result
+  rescue
+    puts "ERROR!! SSH test result code: %s, result: %s, error msg: %s" % [result[:exit_code],result[:stdout],result[:stderr]] if result
+    raise
+  end
 end
 
 def scaleio_systems
@@ -179,7 +195,7 @@ else
       results ||= {}
       scaleio_cache = "/opt/Dell/ASM/cache"
       Dir.mkdir(scaleio_cache) unless Dir.exists? scaleio_cache
-      file_path = File.join(scaleio_cache, "#{opts[:server]}.json")
+      file_path = File.join(scaleio_cache, "#{@opts[:server]}.json")
       File.write(file_path, results) unless results.empty?
     end
   end
