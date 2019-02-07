@@ -76,8 +76,7 @@ def collect_scaleio_facts
     pd = {:general => protection_domain,
           :statistics => protection_domain_statistics(protection_domain),
           :storage_pool_list => protection_domain_storage_pools(protection_domain),
-          :sds_list => protection_domain_sdslist(protection_domain),
-          :acceleration_pool => protection_domain_acceleration_pool(protection_domain)}
+          :sds_list => protection_domain_sdslist(protection_domain)}
     pd[:storage_pool_list].each do |storage_pool|
       storage_pool[:statistics] = storage_pool_statistics(storage_pool)
       storage_pool[:disk_list] = storage_pool_disks(storage_pool)
@@ -138,12 +137,6 @@ end
 def protection_domain_sdslist(protection_domain)
   sp_url = "/api/instances/ProtectionDomain::%s/relationships/Sds" % [protection_domain["id"]]
   url = transport.get_url(sp_url)
-  transport.post_request(url, {}, "get") || []
-end
-
-def protection_domain_acceleration_pool(protection_domain)
-  acc_url = "/api/instances/ProtectionDomain::%s/relationships/AccelerationPool" % [protection_domain["id"]]
-  url = transport.get_url(acc_url)
   transport.post_request(url, {}, "get") || []
 end
 
