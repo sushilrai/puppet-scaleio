@@ -41,8 +41,14 @@ module Puppet
                            :accept => :json })
 
         rescue => ex
-          response = "NO MDM" if ex.class == RestClient::PreconditionRequired
-          Puppet.err "Failed to get cookie from ScaleIO Gateway with error %s" % [ex.message]
+          raise("failed to get the cookie: %s" % ex.to_s) if ex.response.nil? || ex.response.body.nil?
+          response_body = JSON.parse(ex.response.body)
+
+          unless response_body["message"].include?("no MDM IP is set")
+            raise("Failed to get cookie: %s: %s: %s" % [ex.class, ex.to_s, response_body])
+          end
+          response = "NO MDM"
+          Puppet.err "Failed to get cookie from ScaleIO Gateway with error %s" % [response_body]
         end
         @scaleio_cookie = response.strip.tr('""', '')
       end
