@@ -73,11 +73,13 @@ def collect_scaleio_facts
   facts[:statistics] = scaleio_system_statistics(scaleio_system)
   facts[:sdc_list] = scaleio_sdc(scaleio_system)
   protection_domains(scaleio_system).each do |protection_domain|
+    accel_pool_info = protection_domain_acceleration_pool(protection_domain)
     pd = {:general => protection_domain,
           :statistics => protection_domain_statistics(protection_domain),
           :storage_pool_list => protection_domain_storage_pools(protection_domain),
           :sds_list => protection_domain_sdslist(protection_domain),
-          :acceleration_pool => protection_domain_acceleration_pool(protection_domain)}
+          :acceleration_pool => accel_pool_info,
+          :acceleration_pool_devices => acceleration_pool_devices(accel_pool_info)}
     pd[:storage_pool_list].each do |storage_pool|
       storage_pool[:statistics] = storage_pool_statistics(storage_pool)
       storage_pool[:disk_list] = storage_pool_disks(storage_pool)
@@ -147,6 +149,20 @@ def protection_domain_acceleration_pool(protection_domain)
   transport.post_request(url, {}, "get") || []
 rescue
   []
+end
+
+def acceleration_pool_devices(accel_pool_info)
+  return [] if accel_pool_info.empty?
+
+  acc_pool_devices = []
+  accel_pool_info.each do |accel_pool|
+    accel_pool_id = accel_pool["id"]
+    acc_url = "/api/instances/AccelerationPool::%s/relationships/Device" % [accel_pool_id]
+    url = transport.get_url(acc_url)
+    acc_pool_devices << transport.post_request(url, {}, "get") || []
+  end
+
+  acc_pool_devices
 end
 
 def storage_pool_volumes(storage_pool)
