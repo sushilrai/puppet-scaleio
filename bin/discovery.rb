@@ -51,6 +51,7 @@ def collect_scaleio_facts
   facts[:name] = vxflexos_hostname
   facts[:update_time] = Time.now
   facts[:device_type] = "script"
+  facts[:scaleio_rpm_version] = "DellEMC ScaleIO Version: R#{get_scaleio_version}"
 
   # ScaleIO MDM is not configured
   # Need to return basic information
@@ -102,8 +103,26 @@ def check_ssh_connection
   end
 end
 
+def get_scaleio_version
+  begin
+    result = ASM::Util.execute_script_via_ssh(@opts[:server], @opts[:os_username], @opts[:os_password], "rpm -q EMC-ScaleIO-gateway")
+    version = result[:stdout].scan(/EMC-ScaleIO-gateway-(.*\d+)\./).flatten.first if result
+    return version.gsub(/-/, ".") if version
+  rescue
+    puts "ERROR!! Unable to get scaleio rpm version exit code: %s, result: %s, error msg: %s" % [result[:exit_code], result[:stdout], result[:stderr]] if result
+    raise
+  end
+
+  nil
+end
+
 def scaleio_systems
-  url = transport.get_url("/api/types/System/instances")
+  url = transport.get_url("api/types/System/instances")
+  transport.post_request(url, {}, "get") || []
+end
+
+def scaleio_gateway_systems
+  url = transport.get_url("api/configuration")
   transport.post_request(url, {}, "get") || []
 end
 
