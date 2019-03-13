@@ -2,8 +2,9 @@ define scaleio::package (
   $ensure = undef,
   $pkg_ftp = undef,
   $pkg_path = undef,
-  $scaleio_password = undef,
-  $scaleio_yum_repo = undef
+  $password = undef,
+  $scaleio_yum_repo = undef,
+  $cmd_provider = undef
   )
 {
   $package = $::osfamily ? {
@@ -57,6 +58,11 @@ define scaleio::package (
     'Suse' => 'rpm',
   }
 
+  $pkg_inst = $::osfamily ? {
+    'RedHat' => 'yum -y install ',
+    'Suse' => 'zypper --non-interactive --no-gpg-checks --quiet install ',
+  }
+
   if $ensure == 'absent' {
     package { $package:
       ensure => absent,
@@ -99,11 +105,12 @@ define scaleio::package (
     }
   }
   else {
-    if $package == 'lia' {
-      exec {"yum -y install $package":
-        command => "TOKEN=${scaleio_password} yum -y install $package",
+    if $package == 'lia' or $package == 'EMC-ScaleIO-lia' {
+      exec {"Install LIA $package with password $password":
+        command => "/usr/bin/env TOKEN=${password} ${pkg_inst} $package",
         unless      => "rpm -q 'EMC-ScaleIO-lia'",
         path        => '/bin:/usr/bin',
+        provider    => $cmd_provider
       }
     } else {
       package {$package:}
