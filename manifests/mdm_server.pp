@@ -9,7 +9,8 @@ define scaleio::mdm_server (
   $mdm_management_ips = undef,      # string - MDM management IPs
   $pkg_ftp            = undef,      # string - URL where packages are placed (for example: ftp://ftp.emc.com/Ubuntu/2.0.10000.2072)
   $pkg_path           = undef,      # string - Location of RPMs located on the local server
-  $scaleio_password   = undef,      # string - ScaleIO Password
+  $password           = undef,      # string - ScaleIO Password
+  $cmd_provider       = undef       # string - ScaleIO password decryption provider
   )
 {
   $provider = "${::osfamily}${::operatingsystemmajrelease}" ? {
@@ -37,7 +38,8 @@ define scaleio::mdm_server (
       ensure  => $ensure,
       pkg_ftp => $pkg_ftp,
       pkg_path => $pkg_path,
-      scaleio_password => $scaleio_password
+      password => $password,
+      cmd_provider => $cmd_provider
     }
 
     service { 'mdm':
