@@ -4,9 +4,12 @@ include firewall
 define scaleio::sds_server (
   $ensure  = 'present',  # present|absent - Install or remove SDS service
   $xcache  = 'present',  # present|absent - Install or remove XCache service
+  $lia     = 'present',  # present|absent - Install or remove lia service
   $ftp     = 'default',  # string - 'default' or FTP with user and password for driver_sync
   $pkg_ftp = undef,      # string - URL where packages are placed (for example: ftp://ftp.emc.com/Ubuntu/2.0.10000.2072)
-  $pkg_path = undef
+  $pkg_path = undef,
+  $password = undef,      # string - ScaleIO Password
+  $cmd_provider = undef   # string - ScaleIO password decryption provider
   )
 {
   firewall { '001 Open Port 7072 for ScaleIO SDS':
@@ -32,16 +35,34 @@ define scaleio::sds_server (
     path    => '/etc/udev/rules.d/60-scaleio-ssd-scheduler.rules',
   } ->
 
+  scaleio::package { 'lia':
+    ensure  => $ensure,
+    pkg_ftp => $pkg_ftp,
+    pkg_path => $pkg_path,
+    password => $password,
+    cmd_provider => $cmd_provider
+  }
   scaleio::package { 'xcache':
     ensure  => $xcache,
     pkg_ftp => $pkg_ftp,
     pkg_path => $pkg_path,
     require => Scaleio::Common_server['install common packages for SDS']
   }
+
   if $xcache == 'present' {
     service { 'xcache':
       ensure => 'running',
       require => "Scaleio::Package[xcache]"
+    }
+  }
+
+  if $lia == 'present' {
+    service { 'lia':
+      ensure    => 'running',
+      enable    => true,
+      hasstatus => true,
+      require   => Scaleio::Package['lia'],
+      provider  => $provider
     }
   }
 
