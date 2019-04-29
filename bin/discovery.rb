@@ -48,15 +48,15 @@ end
 def collect_scaleio_facts
   check_ssh_connection
   gateway_os_facts = collect_gateway_os_facts
-  scaleio_package_info = gateway_os_facts["packages"]["EMC-ScaleIO-gateway"].first
+  scaleio_package_info = gateway_os_facts["packages"]["EMC-ScaleIO-gateway"].first if gateway_os_facts && gateway_os_facts["packages"]
 
   facts = {:protection_domain_list => []}
   facts[:certname] = "scaleio-%s" % [@opts[:server]]
   facts[:name] = vxflexos_hostname
   facts[:update_time] = Time.now
   facts[:device_type] = "script"
-  facts[:scaleio_rpm_version] = "DellEMC ScaleIO Version: R#{scaleio_package_info["version"]}.#{scaleio_package_info["release"]}"
-  facts[:gateway_ips] = gateway_os_facts["ansible_all_ipv4_addresses"]
+  facts[:scaleio_rpm_version] = "DellEMC ScaleIO Version: R#{scaleio_package_info["version"]}.#{scaleio_package_info["release"]}" if scaleio_package_info
+  facts[:gateway_ips] = gateway_os_facts["ansible_all_ipv4_addresses"] if gateway_os_facts
   facts[:os_facts] = gateway_os_facts
 
   # ScaleIO MDM is not configured
@@ -102,14 +102,14 @@ def collect_gateway_os_facts
   puts "Collecting gateway os inventory with Ansible on %s." %@opts[:server]
   begin
     output = ("/opt/Dell/ASM/cache/%s.json" % "Flex_os_gateway-#{@opts[:server]}")
+    ASM::OSInventoryRun.logger=(Logger.new(STDOUT))
     gateway_os_inventory = ASM::OSInventoryRun.gather_red_hat_os_inventory([{:server => @opts[:server],
                                                                              :credential_id => @opts[:credential_id],
                                                                              :is_scaleio => true,
                                                                              :cache_output => output}])
-
-    puts "Done with new inventory SVM Inventory for: %s" % @opts[:server] if !gateway_os_inventory.empty?
-    return gateway_os_inventory.first if !gateway_os_inventory.empty?
-    puts "Gateway inventory was empty for %s." % @opts[:server] if gateway_os_inventory.empty?
+    puts "Done with new inventory SVM Inventory for: %s" % @opts[:server] if gateway_os_inventory && !gateway_os_inventory.empty?
+    return gateway_os_inventory.first if gateway_os_inventory && !gateway_os_inventory.empty?
+    puts "Gateway inventory was empty for %s." % @opts[:server] if gateway_os_inventory && gateway_os_inventory.empty?
   rescue
     # Don't fail discovery if we cant get OS facts
     raise("Cannot get gateway OS facts with ansible for %s due to error: %s" % [@opts[:server], $!.message])
