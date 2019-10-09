@@ -95,6 +95,8 @@ def collect_scaleio_facts
     facts[:protection_domain_list] << pd
   end
   facts[:fault_sets] = scaleio_faultsets(scaleio_system)
+  facts[:upgrade_in_progress] = upgrade_in_progress?
+
   facts
 end
 
@@ -232,6 +234,14 @@ def scaleio_faultsets(scaleio_system)
   faultset_url = "/api/types/FaultSet/instances?systemId=%s" % [scaleio_system["id"]]
   url = transport.get_url(faultset_url)
   transport.post_request(url, {}, "get") || []
+end
+
+def upgrade_in_progress?
+  instance_url = "/im/types/ProcessPhase/instances/"
+  url = transport.get_url(instance_url)
+  upgrade_progress_info = transport.post_im_request(url, {}, "get")
+
+  !(upgrade_progress_info["phase"]["name"] == "idle" && upgrade_progress_info["nextPhase"].nil?)
 end
 
 def transport

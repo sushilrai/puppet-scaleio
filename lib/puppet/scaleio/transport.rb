@@ -74,6 +74,71 @@ module Puppet
             'Cookie' => self.scaleio_cookie || get_scaleio_cookie
         }
       end
+
+      def vxos_im_login_url
+        "https://%s/j_spring_security_check" % [self.host]
+      end
+
+      def vxos_im_jsession_id
+        @__jsession_id ||= begin
+          RestClient::Request.execute(
+            :url => vxos_im_login_url,
+            :method => :post,
+            :verify_ssl => false,
+            :max_redirect => 0,
+            :payload => "j_username=%s&j_password=%s&submit=Login" % ["admin", cgi_escape(self.password)])
+        end
+      rescue RestClient::ExceptionWithResponse => e
+        @__jsession_id = e.response.cookies["JSESSIONID"]
+      rescue
+        require 'pry'; binding.pry
+        retry_count ||= 0
+        if retry_count >= 5
+          raise("Failed to retrieve JSESSION ID for IM REST APIs after 5 attempts")
+        else
+          retry_count += 1
+          Puppet.debug("Failed to retrieve JSESSION ID. Retry attempt %s" % [retry_count])
+          sleep(10)
+          retry
+        end
+      end
+
+      def get_im_url(end_point)
+        "https://%s%s" % [self.host, end_point]
+      end
+
+      def im_headers(content_type="json")
+        if content_type == "form"
+          header = {
+            :content_type => "multipart/form-data",
+            :cookie => "JSESSIONID=%s" % [vxos_im_jsession_id]
+          }
+        else
+          header = {
+            :content_type => "application/json",
+            :accept => :json,
+            :cookie => "JSESSIONID=%s" % [vxos_im_jsession_id]
+          }
+        end
+
+        header
+      end
+
+      def post_im_request(end_point, payload, method, content_type="json")
+        plain_content_type = ["application/octet-stream", "text/html"]
+        response = RestClient::Request.execute(:url => end_point,
+                                               :method => method.to_sym,
+                                               :verify_ssl => false,
+                                               :payload => payload,
+                                               :headers => im_headers(content_type),
+                                               :cookies => {"JSESSIONID" => vxos_im_jsession_id})
+        if !response.empty? &&
+          response.respond_to?(:headers) &&
+          plain_content_type.include?(response.headers[:content_type])
+        else
+          JSON.parse(response) unless response.empty?
+        end
+      end
     end
   end
 end
